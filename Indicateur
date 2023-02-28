@@ -1,0 +1,78 @@
+using System;
+using System.ComponentModel;
+using System.Windows.Media;
+using NinjaTrader.Data;
+using NinjaTrader.Gui.Chart;
+using NinjaTrader.Gui.Design;
+using NinjaTrader.Gui.Tools;
+using NinjaTrader.Indicator;
+
+namespace NinjaTrader.Custom.Indicators
+{
+    [Description("Ichimoku Kinko Hyo / VWAP")]
+    [Gui.Design.DisplayName("Ichimoku VWAP Ratio")]
+    public class IchimokuVWAPRatio : Indicator
+    {
+        private double vwapValue;
+        private double tenkanValue;
+        private double kijunValue;
+        private double senkouAValue;
+        private double senkouBValue;
+
+        private VWAP vwap;
+        private TenkanTenTen tenkan;
+        private KijunSen kijun;
+        private SenkouSpanA senkouA;
+        private SenkouSpanB senkouB;
+
+        protected override void OnStateChange()
+        {
+            if (State == State.SetDefaults)
+            {
+                Description = @"Ichimoku Kinko Hyo / VWAP";
+                Name = "Ichimoku VWAP Ratio";
+                Calculate = Calculate.OnBarClose;
+                IsOverlay = true;
+                DisplayInDataBox = true;
+                DrawOnPricePanel = true;
+                DrawHorizontalGridLines = true;
+                DrawVerticalGridLines = true;
+                PaintPriceMarkers = true;
+                ScaleJustification = NinjaTrader.Gui.Chart.ScaleJustification.Right;
+                PlotsConfigurable = false;
+            }
+            else if (State == State.DataLoaded)
+            {
+                vwap = VWAP(Close, Volume, 14);
+                tenkan = TenkanTenTen(9);
+                kijun = KijunSen(26);
+                senkouA = SenkouSpanA(9, 26, 52);
+                senkouB = SenkouSpanB(26, 52);
+            }
+        }
+
+        protected override void OnBarUpdate()
+        {
+            if (CurrentBar < 1)
+                return;
+
+            vwapValue = vwap[0];
+            tenkanValue = tenkan[0] / vwapValue;
+            kijunValue = kijun[0] / vwapValue;
+            senkouAValue = senkouA[0] / vwapValue;
+            senkouBValue = senkouB[0] / vwapValue;
+
+            if (tenkanValue > kijunValue && tenkanValue > senkouAValue && tenkanValue > senkouBValue)
+                PlotBrushes[0][0] = Brushes.Green;
+            else if (tenkanValue < kijunValue && tenkanValue < senkouAValue && tenkanValue < senkouBValue)
+                PlotBrushes[0][0] = Brushes.Red;
+            else
+                PlotBrushes[0][0] = Brushes.Yellow;
+
+            Values[0][0] = tenkanValue;
+            Values[1][0] = kijunValue;
+            Values[2][0] = senkouAValue;
+            Values[3][0] = senkouBValue;
+        }
+    }
+}
